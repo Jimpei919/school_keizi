@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>シンプル掲示板</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, sans-serif; background: #f4f6f9; margin:0; padding:20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { text-align:center; color:#2c3e50; }
+    .new-post { background:white; padding:20px; border-radius:12px; margin-bottom:30px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    .post {
+      background:white; border-radius:12px; padding:20px; margin-bottom:20px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.1); transition:0.2s;
+    }
+    .post:hover { transform:translateY(-3px); }
+    .post-title { margin:0 0 8px 0; color:#2c3e50; font-size:1.45em; }
+    .post-meta { color:#7f8c8d; font-size:0.92em; margin-bottom:12px; }
+    .post-body { line-height:1.7; white-space:pre-wrap; }
+    .actions { margin-top:15px; display:flex; gap:12px; }
+    button { padding:9px 18px; border:none; border-radius:8px; cursor:pointer; font-size:0.95em; }
+    .like-btn { background:#e74c3c; color:white; }
+    .delete-btn { background:#95a5a6; color:white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📌 シンプル掲示板</h1>
+
+    <div class="new-post">
+      <h2>新規投稿</h2>
+      <iframe src="https://forms.gle/5ZSwKdBBeKTVZppW8" width="100%" height="580" frameborder="0"></iframe>
+    </div>
+
+    <h2>投稿一覧</h2>
+    <div id="posts"></div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzbxpyI2eVlEpESUq0GplieNXYNqO-KjrrOWHxSXhaM9cVRX3PK6NfMlQlzFIq2y12t/exec";   // ← 必ず変更！
+
+    async function loadPosts() {
+      const res = await fetch(API_URL);
+      const posts = await res.json();
+
+      const container = document.getElementById("posts");
+      container.innerHTML = posts.reverse().map(p => {
+        const date = new Date(p.タイムスタンプ);
+        const formattedDate = date.toLocaleString('ja-JP', {
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+
+        return `
+          <div class="post">
+            <h3 class="post-title">${escapeHtml(p.タイトル || "無題")}</h3>
+            <div class="post-meta">
+              投稿者: ${escapeHtml(p.名前 || "匿名")}　•　${formattedDate}
+            </div>
+            <div class="post-body">${escapeHtml(p.内容 || "")}</div>
+            
+            <div class="actions">
+              <button class="like-btn" onclick="toggleLike(this)">
+                ❤️ ${p.いいね || 0}
+              </button>
+              <button class="delete-btn" onclick="deletePost('${escapeHtml(p.削除用パス || "")}')">
+                削除
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function toggleLike(btn) {
+      // 簡易版：いいねは現在未実装（PostIDがないため）。必要なら後で強化
+      alert("いいね機能は現在調整中です");
+      loadPosts();
+    }
+
+    async function deletePost(token) {
+      if (!token) {
+        alert("この投稿には削除パスが設定されていません");
+        return;
+      }
+      const input = prompt("削除用パスを入力してください");
+      if (!input || input !== token) {
+        alert("パスが違います");
+        return;
+      }
+
+      await fetch(API_URL, {
+        method: "POST",
+        body: new URLSearchParams({ action: "delete", token: input })
+      });
+      loadPosts();
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    window.onload = () => {
+      loadPosts();
+      setInterval(loadPosts, 10000);   // 10秒ごとに自動更新
+    };
+  </script>
+</body>
+</html>
