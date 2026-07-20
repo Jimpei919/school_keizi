@@ -1,241 +1,46 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>シンプル掲示板</title>
-
 <style>
-
-body{
-    font-family:Arial,sans-serif;
-    background:#f4f6f9;
-    margin:0;
-    padding:20px;
-}
-
-.container{
-    max-width:800px;
-    margin:auto;
-}
-
-h1{
-    text-align:center;
-}
-
-.post{
-    background:#fff;
-    margin:15px 0;
-    padding:20px;
-    border-radius:10px;
-    box-shadow:0 2px 8px rgba(0,0,0,.1);
-}
-
-.post-title{
-    margin:0;
-    color:#2c3e50;
-    font-size:1.3em;
-}
-
-.post-meta{
-    color:#666;
-    font-size:.9em;
-    margin:8px 0;
-}
-
-.reply{
-    margin-top:15px;
-    background:#eef7ff;
-    border-left:5px solid #2196f3;
-    padding:12px;
-    border-radius:8px;
-}
-
-.delete-box{
-    margin-top:15px;
-    text-align:right;
-}
-
-.delete-box input{
-    padding:6px;
-    width:160px;
-}
-
-.delete-box button{
-    padding:6px 12px;
-    margin-left:5px;
-    cursor:pointer;
-}
-
-</style>
-
-</head>
-
-<body>
-
+body{font-family:Arial,sans-serif;background:#f4f6f9;margin:0;padding:20px}
+.container{max-width:800px;margin:auto}.post{background:#fff;padding:20px;margin:15px 0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.post-title{margin:0}.post-meta{color:#666;font-size:.9em}.reply{margin-top:15px;padding:12px;background:#eef7ff;border-left:5px solid #2196f3}
+.delete-box{text-align:right;margin-top:12px}
+</style></head><body>
 <div class="container">
-
 <h1>📌 シンプル掲示板</h1>
-
 <h2>新規投稿</h2>
-
-<iframe
-src="https://forms.gle/5ZSwKdBBeKTVZppW8"
-width="100%"
-height="500"
-frameborder="0">
-</iframe>
-
+<iframe src="https://forms.gle/5ZSwKdBBeKTVZppW8" width="100%" height="500"></iframe>
 <h2>投稿一覧</h2>
-
 <div id="posts">読み込み中...</div>
-
 </div>
-
 <script>
-
-const API_URL="https://script.google.com/macros/s/AKfycbzHGYtFH1aWI4aYG247E8417TlGWqPn7n3M1iG8TbseJBQUTbCKToGZVaHSI8czLT97/exec";
-
-function escapeHtml(str){
-
-    return String(str)
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#39;");
-}
-
+const API_URL="https://script.google.com/macros/s/AKfycbxFdYvu5GHDzwV-ZdK8UabPzMkmLoHZe_qxMm22V4htGPkySoc-qkhDACd7kwppZbyZ/exec";
+function h(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
 async function loadPosts(){
-
-    const container=document.getElementById("posts");
-
-    try{
-
-        const res=await fetch(API_URL);
-
-        const posts=await res.json();
-
-        if(posts.error){
-            throw new Error(posts.error);
-        }
-
-        if(posts.length===0){
-            container.innerHTML="<p>まだ投稿がありません。</p>";
-            return;
-        }
-
-        container.innerHTML=posts.reverse().map((p,index)=>`
-
-<div class="post">
-
-<h3 class="post-title">${escapeHtml(p.タイトル||"無題")}</h3>
-
-<div class="post-meta">
-投稿者：${escapeHtml(p.名前||"匿名")}
-　
-${new Date(p.タイムスタンプ).toLocaleString("ja-JP")}
-</div>
-
-<p>${escapeHtml(p.内容||"")}</p>
-
+ const c=document.getElementById("posts");
+ const r=await fetch(API_URL); const posts=await r.json();
+ c.innerHTML=posts.reverse().map((p,i)=>`<div class="post">
+<h3 class="post-title">${h(p.タイトル||"無題")}</h3>
+<div class="post-meta">投稿者：${h(p.名前||"匿名")} ${new Date(p.タイムスタンプ).toLocaleString("ja-JP")}</div>
+<p>${h(p.内容)}</p>
 <small>👍 ${p.いいね||0}</small>
-
-${p.返信?`
-
-<div class="reply">
-<strong>管理者から返信</strong><br><br>
-${escapeHtml(p.返信)}
-</div>
-
-`:""}
-
+${p.返信?`<div class="reply"><b>管理者から返信</b><br><br>${h(p.返信)}</div>`:""}
 <div class="delete-box">
-
-<input
-type="password"
-id="pass${index}"
-placeholder="削除用パス">
-
-<button
-onclick='deletePost(
-${JSON.stringify(p.タイトル||"")},
-${JSON.stringify(p.名前||"")},
-${JSON.stringify(p.内容||"")},
-${index}
-)'>
-削除
-</button>
-
-</div>
-
-</div>
-
-`).join("");
-    }catch(err){
-
-        container.innerHTML=
-        `<p style="color:red;">取得失敗：${err.message}</p>`;
-
-    }
-
+<input type="password" id="pass${i}" placeholder="削除用パス">
+<button onclick='deletePost(${JSON.stringify("").slice(0,0)}${JSON.stringify("")})' style="display:none"></button>
+<button onclick='deletePost(${JSON.stringify("")})' style="display:none"></button>
+<button onclick='deletePostData(${JSON.stringify("")})' style="display:none"></button>
+<button onclick='deletePost(${JSON.stringify(p.タイトル||"")},${JSON.stringify(p.名前||"")},${JSON.stringify(p.内容||"")},${i})'>削除</button>
+</div></div>`).join("");
 }
-
 async function deletePost(title,name,content,index){
-
-    const pass=document.getElementById("pass"+index).value;
-
-    if(pass===""){
-        alert("削除用パスを入力してください。");
-        return;
-    }
-
-    if(!confirm("この投稿を削除しますか？")){
-        return;
-    }
-
-    try{
-
-        const res=await fetch(API_URL,{
-            method:"POST",
-            headers:{
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
-                action:"delete",
-                title:title,
-                name:name,
-                content:content,
-                pass:pass
-            })
-        });
-
-        const result=await res.json();
-
-        if(result.success){
-
-            alert("削除しました。");
-
-            loadPosts();
-
-        }else{
-
-            alert(result.message || "削除できませんでした。");
-
-        }
-
-    }catch(err){
-
-        alert("通信エラー：" + err.message);
-
-    }
-
+ const pass=document.getElementById("pass"+index).value;
+ if(!pass){alert("削除用パスを入力してください。");return;}
+ const q=new URLSearchParams({action:"delete",title,name,content,pass});
+ const res=await fetch(API_URL+"?"+q.toString());
+ const result=await res.json();
+ if(result.success){alert("削除しました。");loadPosts();}else alert(result.message||"削除できません");
 }
-
 window.onload=loadPosts;
-
-</script>
-
-</body>
-</html>
+</script></body></html>
