@@ -1,59 +1,75 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>シンプル掲示板</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body{
-      font-family: Arial, sans-serif;
-      background:#f4f6f9;
-      margin:0;
-      padding:20px;
-    }
+<title>シンプル掲示板</title>
 
-    .container{
-      max-width:800px;
-      margin:auto;
-    }
+<style>
 
-    h1{
-      text-align:center;
-    }
+body{
+    font-family:Arial,sans-serif;
+    background:#f4f6f9;
+    margin:0;
+    padding:20px;
+}
 
-    .post{
-      background:white;
-      padding:20px;
-      margin:15px 0;
-      border-radius:10px;
-      box-shadow:0 2px 8px rgba(0,0,0,.1);
-    }
+.container{
+    max-width:800px;
+    margin:auto;
+}
 
-    .post-title{
-      margin:0;
-      color:#2c3e50;
-      font-size:1.3em;
-    }
+h1{
+    text-align:center;
+}
 
-    .post-meta{
-      color:#666;
-      font-size:.9em;
-      margin:8px 0;
-    }
+.post{
+    background:#fff;
+    margin:15px 0;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
 
-    .reply{
-      margin-top:15px;
-      padding:12px;
-      background:#eef7ff;
-      border-left:5px solid #2196f3;
-      border-radius:8px;
-    }
+.post-title{
+    margin:0;
+    color:#2c3e50;
+    font-size:1.3em;
+}
 
-    .reply strong{
-      color:#1565c0;
-    }
-  </style>
+.post-meta{
+    color:#666;
+    font-size:.9em;
+    margin:8px 0;
+}
+
+.reply{
+    margin-top:15px;
+    background:#eef7ff;
+    border-left:5px solid #2196f3;
+    padding:12px;
+    border-radius:8px;
+}
+
+.delete-box{
+    margin-top:15px;
+    text-align:right;
+}
+
+.delete-box input{
+    padding:6px;
+    width:160px;
+}
+
+.delete-box button{
+    padding:6px 12px;
+    margin-left:5px;
+    cursor:pointer;
+}
+
+</style>
+
 </head>
 
 <body>
@@ -79,7 +95,17 @@ frameborder="0">
 
 <script>
 
-const API_URL="https://script.google.com/macros/s/AKfycbwC0sH7d5H8qamyYv15cmq9A7x_atHObgXZEHAq86GMlaa9P_wt-sR6ibKt4LBvgKQ/exec";
+const API_URL="https://script.google.com/macros/s/AKfycbzHGYtFH1aWI4aYG247E8417TlGWqPn7n3M1iG8TbseJBQUTbCKToGZVaHSI8czLT97/exec";
+
+function escapeHtml(str){
+
+    return String(str)
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+}
 
 async function loadPosts(){
 
@@ -87,11 +113,7 @@ async function loadPosts(){
 
     try{
 
-        const res=await fetch(API_URL,{
-            headers:{
-                "Content-Type":"text/plain;charset=utf-8"
-            }
-        });
+        const res=await fetch(API_URL);
 
         const posts=await res.json();
 
@@ -104,35 +126,108 @@ async function loadPosts(){
             return;
         }
 
-        container.innerHTML=posts.reverse().map(p=>`
+        container.innerHTML=posts.reverse().map((p,index)=>`
 
-            <div class="post">
+<div class="post">
 
-                <h3 class="post-title">${p.タイトル || "無題"}</h3>
+<h3 class="post-title">${escapeHtml(p.タイトル||"無題")}</h3>
 
-                <div class="post-meta">
-                    投稿者：${p.名前 || "匿名"}　
-                    ${new Date(p.タイムスタンプ).toLocaleString("ja-JP")}
-                </div>
+<div class="post-meta">
+投稿者：${escapeHtml(p.名前||"匿名")}
+　
+${new Date(p.タイムスタンプ).toLocaleString("ja-JP")}
+</div>
 
-                <p>${p.内容 || ""}</p>
+<p>${escapeHtml(p.内容||"")}</p>
 
-                <small>👍 ${p.いいね}</small>
+<small>👍 ${p.いいね||0}</small>
 
-                ${p.返信 ? `
-                <div class="reply">
-                    <strong>管理者から返信</strong><br><br>
-                    ${p.返信}
-                </div>
-                ` : ""}
+${p.返信?`
 
-            </div>
+<div class="reply">
+<strong>管理者から返信</strong><br><br>
+${escapeHtml(p.返信)}
+</div>
 
-        `).join("");
+`:""}
+
+<div class="delete-box">
+
+<input
+type="password"
+id="pass${index}"
+placeholder="削除用パス">
+
+<button
+onclick='deletePost(
+${JSON.stringify(p.タイトル||"")},
+${JSON.stringify(p.名前||"")},
+${JSON.stringify(p.内容||"")},
+${index}
+)'>
+削除
+</button>
+
+</div>
+
+</div>
+
+`).join("");
+    }catch(err){
+
+        container.innerHTML=
+        `<p style="color:red;">取得失敗：${err.message}</p>`;
+
+    }
+
+}
+
+async function deletePost(title,name,content,index){
+
+    const pass=document.getElementById("pass"+index).value;
+
+    if(pass===""){
+        alert("削除用パスを入力してください。");
+        return;
+    }
+
+    if(!confirm("この投稿を削除しますか？")){
+        return;
+    }
+
+    try{
+
+        const res=await fetch(API_URL,{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                action:"delete",
+                title:title,
+                name:name,
+                content:content,
+                pass:pass
+            })
+        });
+
+        const result=await res.json();
+
+        if(result.success){
+
+            alert("削除しました。");
+
+            loadPosts();
+
+        }else{
+
+            alert(result.message || "削除できませんでした。");
+
+        }
 
     }catch(err){
 
-        container.innerHTML=`<p style="color:red;">取得失敗：${err.message}</p>`;
+        alert("通信エラー：" + err.message);
 
     }
 
