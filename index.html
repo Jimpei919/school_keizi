@@ -5,109 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>シンプル掲示板</title>
   <style>
-    body { font-family: "Helvetica Neue", Arial, sans-serif; background: #f4f6f9; margin:0; padding:20px; }
-    .container { max-width: 800px; margin: 0 auto; }
-    h1 { text-align:center; color:#2c3e50; }
-    .new-post { background:white; padding:20px; border-radius:12px; margin-bottom:30px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
-    .post {
-      background:white; border-radius:12px; padding:20px; margin-bottom:20px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.1); transition:0.2s;
-    }
-    .post:hover { transform:translateY(-3px); }
-    .post-title { margin:0 0 8px 0; color:#2c3e50; font-size:1.45em; }
-    .post-meta { color:#7f8c8d; font-size:0.92em; margin-bottom:12px; }
-    .post-body { line-height:1.7; white-space:pre-wrap; }
-    .actions { margin-top:15px; display:flex; gap:12px; }
-    button { padding:9px 18px; border:none; border-radius:8px; cursor:pointer; font-size:0.95em; }
-    .like-btn { background:#e74c3c; color:white; }
-    .delete-btn { background:#95a5a6; color:white; }
+    body {font-family: Arial, sans-serif; background:#f4f6f9; margin:0; padding:20px;}
+    .container {max-width:800px; margin:auto;}
+    h1 {text-align:center;}
+    .post {background:white; padding:20px; margin:15px 0; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+    .post-title {margin:0; color:#2c3e50;}
+    .post-meta {color:#666; font-size:0.9em;}
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📌 シンプル掲示板</h1>
-
-    <div class="new-post">
-      <h2>新規投稿</h2>
-      <iframe src="https://forms.gle/5ZSwKdBBeKTVZppW8" width="100%" height="580" frameborder="0"></iframe>
-    </div>
+    
+    <h2>新規投稿</h2>
+    <iframe src="https://forms.gle/5ZSwKdBBeKTVZppW8" width="100%" height="500" frameborder="0"></iframe>
 
     <h2>投稿一覧</h2>
-    <div id="posts">データを読み込み中...</div>
+    <div id="posts">読み込み中...</div>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxIa-XA6ep7HBN7Q9nrmvlD2Pzj5XXTCFrk6p3PhOtgVksm48f-0yddJDcaYslMknmm/exec";   // ← ここを自分のGAS URLに変更！
+    const API_URL = "https://script.google.com/macros/s/AKfycbxaH_mMI5GZVTV3vMOA8VLd8pLsxrnCoZ1-hfSv9ug1TynFDiOWf5-3RysF7Xgg4Wn8/exec";   // ← ここにGASのURLを貼り付け
 
     async function loadPosts() {
       const container = document.getElementById("posts");
       try {
         const res = await fetch(API_URL, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          }
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
-
-        if (!res.ok) throw new Error('レスポンスエラー');
-
         const posts = await res.json();
 
-        if (posts.error) {
-          container.innerHTML = `<p style="color:red;">エラー: ${posts.error}</p>`;
-          return;
-        }
+        if (posts.error) throw new Error(posts.error);
 
         if (posts.length === 0) {
           container.innerHTML = "<p>まだ投稿がありません。</p>";
           return;
         }
 
-        container.innerHTML = posts.reverse().map(p => {
-          const date = new Date(p.タイムスタンプ);
-          const formattedDate = date.toLocaleString('ja-JP', {
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
-          });
+        container.innerHTML = posts.reverse().map(p => `
+          <div class="post">
+            <h3 class="post-title">${p.タイトル || "無題"}</h3>
+            <div class="post-meta">投稿者: ${p.名前 || "匿名"} • ${new Date(p.タイムスタンプ).toLocaleString('ja-JP')}</div>
+            <p>${p.内容 || ""}</p>
+          </div>
+        `).join('');
 
-          return `
-            <div class="post">
-              <h3 class="post-title">${escapeHtml(p.タイトル || "無題")}</h3>
-              <div class="post-meta">
-                投稿者: ${escapeHtml(p.名前 || "匿名")}　•　${formattedDate}
-              </div>
-              <div class="post-body">${escapeHtml(p.内容 || "")}</div>
-              <div class="actions">
-                <button class="like-btn">❤️ ${p.いいね || 0}</button>
-                <button class="delete-btn" onclick="deletePost('${escapeHtml(p.削除用パス || "")}')">削除</button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-      } catch (error) {
-        console.error(error);
-        container.innerHTML = `<p style="color:red;">データ取得に失敗しました。<br>${error.message}</p>`;
+      } catch (err) {
+        container.innerHTML = `<p style="color:red;">エラー: ${err.message}</p>`;
       }
     }
 
-    function escapeHtml(text) {
-      return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    async function deletePost(token) {
-      if (!token) return alert("削除パスが設定されていません");
-      const input = prompt("削除用パスを入力してください");
-      if (input !== token) return alert("パスが違います");
-
-      await fetch(API_URL, { method: "POST" });
-      loadPosts();
-    }
-
-    window.onload = () => {
-      loadPosts();
-      setInterval(loadPosts, 15000);  // 15秒ごとに自動更新
-    };
+    window.onload = loadPosts;
   </script>
 </body>
 </html>
