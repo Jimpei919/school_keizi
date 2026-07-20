@@ -9,7 +9,7 @@
     .container {max-width:800px; margin:auto;}
     h1 {text-align:center;}
     .post {background:white; padding:20px; margin:15px 0; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1);}
-    .post-title {margin:0; color:#2c3e50;}
+    .post-title {margin:0; color:#2c3e50; font-size:1.3em;}
     .post-meta {color:#666; font-size:0.9em;}
   </style>
 </head>
@@ -25,7 +25,7 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwK6N937nf7UiDSIiBCzIAybYD-9-A0n3rjIJvBLQ149ThRQ3zHCglSaOdml7alC1TI/exec";   // ← ここにGASのURLを貼り付け
+    const API_URL = "https://script.google.com/macros/s/AKfycbwC0sH7d5H8qamyYv15cmq9A7x_atHObgXZEHAq86GMlaa9P_wt-sR6ibKt4LBvgKQ/exec";   // ← 最新のGAS URL
 
     async function loadPosts() {
       const container = document.getElementById("posts");
@@ -47,11 +47,12 @@
             <h3 class="post-title">${p.タイトル || "無題"}</h3>
             <div class="post-meta">投稿者: ${p.名前 || "匿名"} • ${new Date(p.タイムスタンプ).toLocaleString('ja-JP')}</div>
             <p>${p.内容 || ""}</p>
+            <small>いいね: ${p.いいね} | 削除パス: ${p.削除用パス}</small>
           </div>
         `).join('');
 
       } catch (err) {
-        container.innerHTML = `<p style="color:red;">エラー: ${err.message}</p>`;
+        container.innerHTML = `<p style="color:red;">取得失敗: ${err.message}</p>`;
       }
     }
 
