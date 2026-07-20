@@ -4,59 +4,143 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>シンプル掲示板</title>
+
   <style>
-    body {font-family: Arial, sans-serif; background:#f4f6f9; margin:0; padding:20px;}
-    .container {max-width:800px; margin:auto;}
-    h1 {text-align:center;}
-    .post {background:white; padding:20px; margin:15px 0; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1);}
-    .post-title {margin:0; color:#2c3e50; font-size:1.3em;}
-    .post-meta {color:#666; font-size:0.9em;}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>📌 シンプル掲示板</h1>
-    
-    <h2>新規投稿</h2>
-    <iframe src="https://forms.gle/5ZSwKdBBeKTVZppW8" width="100%" height="500" frameborder="0"></iframe>
-
-    <h2>投稿一覧</h2>
-    <div id="posts">読み込み中...</div>
-  </div>
-
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwC0sH7d5H8qamyYv15cmq9A7x_atHObgXZEHAq86GMlaa9P_wt-sR6ibKt4LBvgKQ/exec";   // ← 最新のGAS URL
-
-    async function loadPosts() {
-      const container = document.getElementById("posts");
-      try {
-        const res = await fetch(API_URL, {
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-        });
-        const posts = await res.json();
-
-        if (posts.error) throw new Error(posts.error);
-
-        if (posts.length === 0) {
-          container.innerHTML = "<p>まだ投稿がありません。</p>";
-          return;
-        }
-
-        container.innerHTML = posts.reverse().map(p => `
-          <div class="post">
-            <h3 class="post-title">${p.タイトル || "無題"}</h3>
-            <div class="post-meta">投稿者: ${p.名前 || "匿名"} • ${new Date(p.タイムスタンプ).toLocaleString('ja-JP')}</div>
-            <p>${p.内容 || ""}</p>
-            <small>いいね: ${p.いいね} | 削除パス: ${p.削除用パス}</small>
-          </div>
-        `).join('');
-
-      } catch (err) {
-        container.innerHTML = `<p style="color:red;">取得失敗: ${err.message}</p>`;
-      }
+    body{
+      font-family: Arial, sans-serif;
+      background:#f4f6f9;
+      margin:0;
+      padding:20px;
     }
 
-    window.onload = loadPosts;
-  </script>
+    .container{
+      max-width:800px;
+      margin:auto;
+    }
+
+    h1{
+      text-align:center;
+    }
+
+    .post{
+      background:white;
+      padding:20px;
+      margin:15px 0;
+      border-radius:10px;
+      box-shadow:0 2px 8px rgba(0,0,0,.1);
+    }
+
+    .post-title{
+      margin:0;
+      color:#2c3e50;
+      font-size:1.3em;
+    }
+
+    .post-meta{
+      color:#666;
+      font-size:.9em;
+      margin:8px 0;
+    }
+
+    .reply{
+      margin-top:15px;
+      padding:12px;
+      background:#eef7ff;
+      border-left:5px solid #2196f3;
+      border-radius:8px;
+    }
+
+    .reply strong{
+      color:#1565c0;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📌 シンプル掲示板</h1>
+
+<h2>新規投稿</h2>
+
+<iframe
+src="https://forms.gle/5ZSwKdBBeKTVZppW8"
+width="100%"
+height="500"
+frameborder="0">
+</iframe>
+
+<h2>投稿一覧</h2>
+
+<div id="posts">読み込み中...</div>
+
+</div>
+
+<script>
+
+const API_URL="https://script.google.com/macros/s/AKfycbwC0sH7d5H8qamyYv15cmq9A7x_atHObgXZEHAq86GMlaa9P_wt-sR6ibKt4LBvgKQ/exec";
+
+async function loadPosts(){
+
+    const container=document.getElementById("posts");
+
+    try{
+
+        const res=await fetch(API_URL,{
+            headers:{
+                "Content-Type":"text/plain;charset=utf-8"
+            }
+        });
+
+        const posts=await res.json();
+
+        if(posts.error){
+            throw new Error(posts.error);
+        }
+
+        if(posts.length===0){
+            container.innerHTML="<p>まだ投稿がありません。</p>";
+            return;
+        }
+
+        container.innerHTML=posts.reverse().map(p=>`
+
+            <div class="post">
+
+                <h3 class="post-title">${p.タイトル || "無題"}</h3>
+
+                <div class="post-meta">
+                    投稿者：${p.名前 || "匿名"}　
+                    ${new Date(p.タイムスタンプ).toLocaleString("ja-JP")}
+                </div>
+
+                <p>${p.内容 || ""}</p>
+
+                <small>👍 ${p.いいね}</small>
+
+                ${p.返信 ? `
+                <div class="reply">
+                    <strong>管理者から返信</strong><br><br>
+                    ${p.返信}
+                </div>
+                ` : ""}
+
+            </div>
+
+        `).join("");
+
+    }catch(err){
+
+        container.innerHTML=`<p style="color:red;">取得失敗：${err.message}</p>`;
+
+    }
+
+}
+
+window.onload=loadPosts;
+
+</script>
+
 </body>
 </html>
